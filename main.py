@@ -1,7 +1,9 @@
-import random, string, json
+import random, string, nltk
 
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api, reqparse
+
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 app = Flask(__name__)
 api = Api(app)
@@ -10,6 +12,30 @@ output = {}
 
 parser = reqparse.RequestParser()
 parser.add_argument('q', location='values')
+
+class SentenceAnalyzer(Resource):
+
+    def get(self):
+
+        # use parser and find the user's query
+        args = parser.parse_args()
+        sentence = args['q']
+        
+        nltk.download("vader_lexicon")
+        sid = SentimentIntensityAnalyzer()
+        score = sid.polarity_scores(sentence)["compound"]
+
+        sentence = sentence.replace('\"', '')
+        output["sentence"] = sentence
+
+        if score > 0:
+            output["predicted-vibe"] = "Positive"
+        else:
+            output["predicted-vibe"] = "Negative"  
+
+        return jsonify(output)
+
+api.add_resource(SentenceAnalyzer, '/')
 
 class SimpleCalculatorQuery(Resource):
 
@@ -95,7 +121,7 @@ class CustomCoupon(Resource):
             data = request.form
             temp_database[code] = {"used":False, "gems":data["gems"], "gold":data["gold"], "exp":data["exp"]}
             return {"status": "Success",
-                    "values": temp_database[code]}
+                    "values": temp_database}
         if request.method == 'DELETE':
             del temp_database[code]
             return temp_database
