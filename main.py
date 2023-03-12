@@ -1,6 +1,6 @@
 import random, string, json
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_restful import Resource, Api, reqparse
 
 app = Flask(__name__)
@@ -84,6 +84,26 @@ class ViewCoupon(Resource):
             return temp_database
 
 api.add_resource(ViewCoupon, '/view/<string:code>', '/view')
+
+class CustomCoupon(Resource):
+    
+    @app.route('/edit/<string:code>', methods = ['GET', 'POST', 'DELETE'])
+    def post(code):
+        if request.method == 'GET':
+            return temp_database[code]
+        if request.method == 'POST':
+            data = request.form
+            temp_database[code] = {"used":False, "gems":data["gems"], "gold":data["gold"], "exp":data["exp"]}
+            return {"status": "Success",
+                    "values": temp_database[code]}
+        if request.method == 'DELETE':
+            del temp_database[code]
+            return temp_database
+        else:
+            return {"status": "Error",
+                "code": 405}
+
+api.add_resource(CustomCoupon, '/edit')
 
 if __name__ == "__main__":
     app.run(debug=True)
